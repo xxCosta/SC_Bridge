@@ -1,8 +1,7 @@
 import { Database } from "bun:sqlite";
 import { randomInt } from "node:crypto";
 
-//use .db instead of .sqlite because its easily recognized by mt5
-const db = new Database("../db2.db");
+const db = new Database("../db1.sqlite");
 
 class Order {
   id!: number;
@@ -10,59 +9,108 @@ class Order {
   sl!: number;
   tp!: number;
   entry!: number;
+  safeEntry!: number
   trig!: number;
+  size!: number;
+  mode!: number;
 }
 
-
 // CREATING TABLE
-const qNewTable = db.query(`create table if not exists open_orders(
+const t_SC_ORDERS = db.query(`create table if not exists SC_ORDERS(
           id number,
           symbol string,
           sl number,
           tp number,
           entry number,
-          trig number
-        );`
-);
-const createTable = qNewTable.run();
-if (createTable.changes === 0) {
-  console.log("READY");
-} else {
-  console.log("Created Table");
-}
+          safeEntry number,
+          trig number,
+          mode number
+        );`);
+t_SC_ORDERS.run();
+
+
+const t_TEST_ORDERS = db.query(`create table if not exists TEST_ORDERS(
+          id number,
+          symbol string,
+          sl number,
+          tp number,
+          entry number,
+          safeEntry number,
+          trig number,
+          mode number
+        );`);
+t_TEST_ORDERS.run();
+
+
 
 // DUMBY DATA
-const order = new Order;
-const keys: (keyof Order)[] = ["id", "symbol", "sl", "tp", "entry", "trig"];
-keys.forEach((key) => {
-  if (key === "symbol") {
-    order[key] = "AUDJPY";
-  } else {
-    order[key] = randomInt(3);
-  }
-});
-//console.log(order);
+const testOrder = new Order;
+const runOrderTest = () => {
+  const keys: (keyof Order)[] = ["id", "symbol", "sl", "tp", "entry", "trig", "mode"];
+  keys.forEach((key) => {
+    if (key === "symbol") {
+      testOrder[key] = "AUDJPY";
+    } else {
+      testOrder[key] = randomInt(3);
+    }
+  });
 
-// ADD ORDER
-const qInsertOrder = db.query(`insert into open_orders (
-  id,symbol,sl,tp,entry,trig)
-  values(
-    ?1,?2,?3,?4,?5,?6
-  );`);
 
-const addOrder = qInsertOrder.run(
-  order.id,
-  order.symbol,
-  order.sl,
-  order.tp,
-  order.entry,
-  order.trig
-);
-
-if (addOrder.changes === 1) {
-  console.log("order added successfully")
+  console.log(testOrder);
 }
 
 
+
+const insertOrder = (o: Order) => {
+
+  const queryInsertOrder = db.query(`insert into OPEN_ORDERS (
+  id,symbol,sl,tp,entry,safeEntry,trig,mode) values(
+    ?1,?2,?3,?4,?5,?6,?7,?8);`
+  );
+
+  Object.entries(o).forEach(([key, value]) => {
+    if (typeof value === "number") {
+      o[key] = Number(value.toFixed(5))
+    }
+  })
+
+  const runQuery = queryInsertOrder.run(
+    o.id,
+    o.symbol,
+    o.sl,
+    o.tp,
+    o.entry,
+    o.safeEntry,
+    o.trig,
+    o.mode,
+  );
+  console.log(o)
+  if (runQuery.changes === 1) {
+    console.log("order added successfully")
+  }
+}
+const server = Bun.serve({
+  hostname: "127.0.0.1",
+  port: 3030,
+  routes: {
+    "/test": {
+      GET: req => {
+        runOrderTest();
+        console.log("testing add");
+        return new Response("TESTED");
+      },
+      POST: async req => {
+        const body = await req.json() as Order;
+        insertOrder(body);
+        return Response.json("GOT IT");
+      },
+    }
+  },
+  fetch(request) {
+    return new Response("Welcome to Bun!");
+  },
+});
+
+console.log("READY TO TAKE IT")
 
 
