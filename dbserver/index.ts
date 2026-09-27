@@ -13,6 +13,7 @@ class Order {
   trig!: number;
   size!: number;
   mode!: number;
+  date!: number;
 }
 
 // CREATING TABLE
@@ -24,7 +25,8 @@ const t_SC_ORDERS = db.query(`create table if not exists SC_ORDERS(
           entry number,
           safeEntry number,
           trig number,
-          mode number
+          mode number,
+          date numnber
         );`);
 t_SC_ORDERS.run();
 
@@ -37,7 +39,8 @@ const t_TEST_ORDERS = db.query(`create table if not exists TEST_ORDERS(
           entry number,
           safeEntry number,
           trig number,
-          mode number
+          mode number,
+          date number
         );`);
 t_TEST_ORDERS.run();
 
@@ -55,6 +58,8 @@ const runOrderTest = () => {
     }
   });
 
+  testOrder.date = Date.now();
+
 
   console.log(testOrder);
 }
@@ -65,7 +70,7 @@ const insertOrder = (o: Order) => {
 
   const queryInsertOrder = db.query(`insert into OPEN_ORDERS (
   id,symbol,sl,tp,entry,safeEntry,trig,mode) values(
-    ?1,?2,?3,?4,?5,?6,?7,?8);`
+    ?1,?2,?3,?4,?5,?6,?7,?8,?9);`
   );
 
   Object.entries(o).forEach(([key, value]) => {
@@ -73,6 +78,8 @@ const insertOrder = (o: Order) => {
       o[key] = Number(value.toFixed(5))
     }
   })
+
+  o.date = Date.now()
 
   const runQuery = queryInsertOrder.run(
     o.id,
@@ -83,6 +90,7 @@ const insertOrder = (o: Order) => {
     o.safeEntry,
     o.trig,
     o.mode,
+    o.date
   );
   console.log(o)
   if (runQuery.changes === 1) {
