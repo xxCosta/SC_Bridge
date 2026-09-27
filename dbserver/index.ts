@@ -3,17 +3,29 @@ import { randomInt } from "node:crypto";
 
 const db = new Database("../db1.sqlite");
 
-class Order {
-  id!: number;
-  symbol!: string;
-  sl!: number;
-  tp!: number;
-  entry!: number;
-  safeEntry!: number
-  trig!: number;
-  size!: number;
-  mode!: number;
-  date!: number;
+interface Order {
+  id: number;
+  symbol: string;
+  sl: number;
+  tp: number;
+  entry: number;
+  safeEntry: number
+  trig: number;
+  mode: number;
+  date: number;
+}
+
+
+class OrderImp implements Order {
+  id = 0;
+  symbol = "";
+  sl = 0;
+  tp = 0;
+  entry = 0;
+  safeEntry = 0;
+  trig = 0;
+  mode = 0;
+  date = 0;
 }
 
 // CREATING TABLE
@@ -47,8 +59,8 @@ t_TEST_ORDERS.run();
 
 
 // DUMBY DATA
-const testOrder = new Order;
 const runOrderTest = () => {
+  let testOrder = new OrderImp
   const keys: (keyof Order)[] = ["id", "symbol", "sl", "tp", "entry", "trig", "mode"];
   keys.forEach((key) => {
     if (key === "symbol") {
@@ -60,16 +72,22 @@ const runOrderTest = () => {
 
   testOrder.date = Date.now();
 
-
   console.log(testOrder);
+
+  const query = db.query(`insert into TEST_ORDERS (
+  id,symbol,sl,tp,entry,safeEntry,trig,mode,date) values(
+    :id,:symbol,:sl,:tp,:entry,:safeEntry,:trig,:mode,:date);`);
+  // you can run the spread as long as your order matches the order
+  // of the sql query
+  console.log(query.run(...Object.values(testOrder)));
 }
 
 
 
 const insertOrder = (o: Order) => {
 
-  const queryInsertOrder = db.query(`insert into OPEN_ORDERS (
-  id,symbol,sl,tp,entry,safeEntry,trig,mode) values(
+  const query = db.query(`insert into OPEN_ORDERS (
+  id,symbol,sl,tp,entry,safeEntry,trig,mode,date) values(
     ?1,?2,?3,?4,?5,?6,?7,?8,?9);`
   );
 
@@ -81,17 +99,7 @@ const insertOrder = (o: Order) => {
 
   o.date = Date.now()
 
-  const runQuery = queryInsertOrder.run(
-    o.id,
-    o.symbol,
-    o.sl,
-    o.tp,
-    o.entry,
-    o.safeEntry,
-    o.trig,
-    o.mode,
-    o.date
-  );
+  const runQuery = query.run(...Object.values(o));
   console.log(o)
   if (runQuery.changes === 1) {
     console.log("order added successfully")
