@@ -1,7 +1,7 @@
 import { Database } from "bun:sqlite";
 import { randomInt } from "node:crypto";
 
-const db = new Database("../db1.sqlite");
+const db = new Database("../../../Files/DB_sc-bridge.sqlite");
 
 interface Order {
   id: number;
