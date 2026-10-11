@@ -7,9 +7,14 @@
 //| Expert initialization function                                   |
 //+------------------------------------------------------------------+
 
-int db;
 
-struct Order{
+int db;
+//2 prices because sometimes tick doesnt work because it never instantiates
+//the second price is the fallback 1st is current tick
+MqlTick priceInfo[2];
+
+
+struct COrder{
    int id;
    string sybol;
    float sl;
@@ -21,11 +26,67 @@ struct Order{
    long date;
 };
 
+
+class CSetup{
+private:
+   double m_priceSL;
+   double m_priceTP;
+   double m_priceTRIG;
+   double m_priceENTRY;
+   double m_boxP1;
+   double m_boxP2;
+   double m_boxT1;
+   double m_boxT2;
+public:
+   CSetup::CSetup(void){
+   }
+};
+
+
+class CGui{
+private:
+   string m_status;
+   string m_button_fetch; //clicking this will populate a setup
+   int m_chartId;
+   bool m_button_state;
+
+public:
+   void CGui::CGui()
+   {
+      m_button_fetch = "fetch button";
+      m_status = "muoy bien";
+      m_chartId = 0;
+      m_button_state = 1;
+      ObjectCreate(m_chartId,m_button_fetch,OBJ_BUTTON,0,0,0);
+      if(ObjectFind(m_chartId,m_button_fetch)==m_chartId)
+      {
+         ObjectSetInteger(m_chartId,m_button_fetch,OBJPROP_XSIZE, 90);
+         ObjectSetInteger(m_chartId,m_button_fetch,OBJPROP_YSIZE, 30);
+         ObjectSetInteger(m_chartId,m_button_fetch,OBJPROP_CORNER,CORNER_LEFT_LOWER);
+         ObjectSetInteger(m_chartId,m_button_fetch,OBJPROP_YDISTANCE, 50);
+         ObjectSetString(m_chartId,m_button_fetch,OBJPROP_TEXT, "GET SETUP");
+         ObjectSetInteger(m_chartId,m_button_fetch,OBJPROP_FONTSIZE,8);
+         ObjectSetString(m_chartId,m_button_fetch,OBJPROP_FONT,"Lucidia Console");
+         ChartRedraw();
+      }else Print("CANT FIND OBJECT",GetLastError());
+}
+void CGui::setButtonState(bool state){
+   m_button_state = state;
+   ObjectSetInteger(ChartID(),m_button_fetch,OBJPROP_STATE,state);
+   ChartRedraw();
+}
+bool CGui::getButtonState(){
+   return(m_button_state);
+}
+};
+
+
+CGui gui; //Global GUI Variable
+
 int OnInit()
 {
-   //--- create timer
-   EventSetTimer(10);
-
+   EventSetTimer(10); //create Timer
+   // setup db
    string dbName = "DB_sc-bridge.sqlite";
    db = DatabaseOpen(dbName, DATABASE_OPEN_READWRITE);
    if(db==INVALID_HANDLE)
@@ -52,12 +113,17 @@ void OnDeinit(const int reason)
 void OnTick()
 {
    //---
+   SymbolInfoTick(ChartSymbol(), priceInfo[0]);
 }
 //+------------------------------------------------------------------+
 //| Timer function                                                   |
 //+------------------------------------------------------------------+
 void OnTimer()
 {
+   Print(GetLastError());
+   SymbolInfoTick(ChartSymbol(), priceInfo[1]);
+   ArrayPrint(priceInfo);
+
    datetime t1 = iTime(NULL, 0, 0);
    datetime t2 = iTime(NULL, 0, 20);
    double p1 = iClose(NULL, 0, 0);
@@ -77,7 +143,6 @@ void OnTimer()
    );
 
 
-   Print("Hello");
    //DatabasePrint(db, "SELECT * from TEST_ORDERS", 0);
    //---
 
@@ -108,7 +173,13 @@ const long &lparam,
 const double &dparam,
 const string &sparam)
 {
-   //---
+
+   if (id == CHARTEVENT_OBJECT_CLICK){
+      gui.setButtonState(0);
+      Print(gui.getButtonState());
+      //Print(ObjectGetInteger(ChartID(),sparam,OBJPROP_STATE));
+   };
+//---
 
 }
 //+------------------------------------------------------------------+
