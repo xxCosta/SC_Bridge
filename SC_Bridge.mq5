@@ -11,49 +11,55 @@
 // the second price is the fallback 1st is current tick
 MqlTick priceInfo[2];
 
-struct STradeParams {
+struct SSetupParams {
+   int m_id;
    string m_symbol;
    double m_priceSL;
    double m_priceTP;
    double m_priceENTRY;
-
-   void STradeParams(void) { m_symbol = ChartSymbol(); };
-   void STradeParams(string symbol, double sl, double tp, double entry)
-       : m_symbol(symbol), m_priceSL(sl), m_priceENTRY(entry) {};
-};
-
-struct SSetupParams : STradeParams {
-   int m_id;
-   int m_mode;
    double m_priceSAFE_ENTRY;
    double m_priceTRIG;
+   int m_mode;
    long m_date;
 
    void SSetupParams(void) {};
-   void SSetupParams(int id, int mode, double trig, double sEntry, long date)
-       : m_id(id), m_mode(mode), m_priceTRIG(trig), m_priceSAFE_ENTRY(sEntry),
+   void SSetupParams(string symbol, double sl, double tp, double entry, int id,
+                     int mode, double trig, double sEntry, long date)
+       : m_symbol(symbol), m_priceSL(sl), m_priceENTRY(entry), m_id(id),
+         m_mode(mode), m_priceTRIG(trig), m_priceSAFE_ENTRY(sEntry),
          m_date(date) {};
 };
-class CSetup {
 
+class CSetup {
    SSetupParams m_params;
    double m_boxP1;
    double m_boxP2;
    double m_boxT1;
    double m_boxT2;
    int db;
+   string dbName;
 
  public:
    void CSetup() {
-
-      string dbName = "DB_sc-bridge.sqlite";
+      dbName = "DB_sc-bridge.sqlite";
       db = DatabaseOpen(dbName, DATABASE_OPEN_READWRITE);
       if (db == INVALID_HANDLE) {
-         Print("DB: ", dbName, " open failed with code ", GetLastError());
-         // return ("failed to open db");
+         Alert("DB: ", dbName, " open failed with code ", GetLastError());
+         ResetLastError();
       }
-      // DatabasePrint(db, "SELECT * from TEST_ORDERS LIMIT 1", 0);
-      Print(m_params.m_symbol);
+      int request = DatabasePrepare(db, "SELECT * from TEST_ORDERS");
+      // loop just for reference: the loop terminates when the thing becomes 0,
+      //  this info might be useful later. TODO: change to while loop
+      for (int i = 0; DatabaseReadBind(request, m_params); i++) {
+         Print(m_params.m_id, ",", m_params.m_mode);
+      };
+      DatabaseFinalize(request);
+      if (GetLastError() == 5126) {
+         ResetLastError();
+         // this is just an error to say DatabaseReadBind cant find anymore
+         // stuff
+      }
+
       DatabaseClose(db);
    };
 };
@@ -129,8 +135,9 @@ void OnTick() {
 //+------------------------------------------------------------------+
 void OnTimer() {
    Print(GetLastError());
-   SymbolInfoTick(ChartSymbol(), priceInfo[1]);
-   ArrayPrint(priceInfo);
+   ResetLastError();
+   // SymbolInfoTick(ChartSymbol(), priceInfo[1]);
+   // ArrayPrint(priceInfo);
 
    datetime t1 = iTime(NULL, 0, 0);
    datetime t2 = iTime(NULL, 0, 20);
@@ -139,7 +146,7 @@ void OnTimer() {
 
    Comment("i love my bbc(big booty caucasian)");
 
-   ObjectCreate(0, "test recky", OBJ_RECTANGLE, 0, t1, p1, t2, p2);
+   // ObjectCreate(0, "test recky", OBJ_RECTANGLE, 0, t1, p1, t2, p2);
 
    // DatabasePrint(db, "SELECT * from TEST_ORDERS", 0);
    //---
