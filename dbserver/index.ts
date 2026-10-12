@@ -4,7 +4,6 @@ import { randomInt } from "node:crypto";
 const db = new Database("../../../Files/DB_sc-bridge.sqlite");
 
 interface Order {
-  id: number;
   symbol: string;
   sl: number;
   tp: number;
@@ -17,7 +16,6 @@ interface Order {
 
 
 class OrderImp implements Order {
-  id = 0;
   symbol = "";
   sl = 0;
   tp = 0;
@@ -30,7 +28,7 @@ class OrderImp implements Order {
 
 // CREATING TABLE
 const t_SC_ORDERS = db.query(`create table if not exists SC_ORDERS(
-          id number,
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
           symbol string,
           sl number,
           tp number,
@@ -44,8 +42,8 @@ t_SC_ORDERS.run();
 
 
 const t_TEST_ORDERS = db.query(`create table if not exists TEST_ORDERS(
-          id number,
-          symbol string,
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          symbol STRING,
           sl number,
           tp number,
           entry number,
@@ -61,12 +59,12 @@ t_TEST_ORDERS.run();
 // DUMBY DATA
 const runOrderTest = () => {
   let testOrder = new OrderImp
-  const keys: (keyof Order)[] = ["id", "symbol", "sl", "tp", "entry", "trig", "mode"];
+  const keys: (keyof Order)[] = ["symbol", "sl", "tp", "entry", "trig", "mode"];
   keys.forEach((key) => {
     if (key === "symbol") {
       testOrder[key] = "AUDJPY";
     } else {
-      testOrder[key] = randomInt(3);
+      testOrder[key] = randomInt(400);
     }
   });
 
@@ -75,14 +73,12 @@ const runOrderTest = () => {
   console.log(testOrder);
 
   const query = db.query(`insert into TEST_ORDERS (
-  id,symbol,sl,tp,entry,safeEntry,trig,mode,date) values(
-    :id,:symbol,:sl,:tp,:entry,:safeEntry,:trig,:mode,:date);`);
+  symbol,sl,tp,entry,safeEntry,trig,mode,date) values(
+    :symbol,:sl,:tp,:entry,:safeEntry,:trig,:mode,:date);`);
   // you can run the spread as long as your order matches the order
   // of the sql query
   console.log(query.run(...Object.values(testOrder)));
 }
-
-
 
 const insertOrder = (o: Order) => {
 
