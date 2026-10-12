@@ -7,36 +7,55 @@
 //| Expert initialization function                                   |
 //+------------------------------------------------------------------+
 
-int db;
 // 2 prices because sometimes tick doesnt work because it never instantiates
 // the second price is the fallback 1st is current tick
 MqlTick priceInfo[2];
 
-struct COrder {
-   int id;
-   string sybol;
-   float sl;
-   float tp;
-   float entry;
-   float safeEntry;
-   float trig;
-   int mode;
-   long date;
-};
-
-class CSetup {
- private:
+struct STradeParams {
+   string m_symbol;
    double m_priceSL;
    double m_priceTP;
-   double m_priceTRIG;
    double m_priceENTRY;
+
+   void STradeParams(void) { m_symbol = ChartSymbol(); };
+   void STradeParams(string symbol, double sl, double tp, double entry)
+       : m_symbol(symbol), m_priceSL(sl), m_priceENTRY(entry) {};
+};
+
+struct SSetupParams : STradeParams {
+   int m_id;
+   int m_mode;
+   double m_priceSAFE_ENTRY;
+   double m_priceTRIG;
+   long m_date;
+
+   void SSetupParams(void) {};
+   void SSetupParams(int id, int mode, double trig, double sEntry, long date)
+       : m_id(id), m_mode(mode), m_priceTRIG(trig), m_priceSAFE_ENTRY(sEntry),
+         m_date(date) {};
+};
+class CSetup {
+
+   SSetupParams m_params;
    double m_boxP1;
    double m_boxP2;
    double m_boxT1;
    double m_boxT2;
+   int db;
 
  public:
-   CSetup::CSetup(void) {}
+   void CSetup() {
+
+      string dbName = "DB_sc-bridge.sqlite";
+      db = DatabaseOpen(dbName, DATABASE_OPEN_READWRITE);
+      if (db == INVALID_HANDLE) {
+         Print("DB: ", dbName, " open failed with code ", GetLastError());
+         // return ("failed to open db");
+      }
+      // DatabasePrint(db, "SELECT * from TEST_ORDERS LIMIT 1", 0);
+      Print(m_params.m_symbol);
+      DatabaseClose(db);
+   };
 };
 
 class CGui {
@@ -88,12 +107,6 @@ CGui gui; // Global GUI Variable
 int OnInit() {
    EventSetTimer(10); // create Timer
    // setup db
-   string dbName = "DB_sc-bridge.sqlite";
-   db = DatabaseOpen(dbName, DATABASE_OPEN_READWRITE);
-   if (db == INVALID_HANDLE) {
-      Print("DB: ", dbName, " open failed with code ", GetLastError());
-      return ("failed to open db");
-   }
 
    return (INIT_SUCCEEDED);
 }
@@ -103,7 +116,6 @@ int OnInit() {
 void OnDeinit(const int reason) {
    //--- destroy timer
    EventKillTimer();
-   DatabaseClose(db);
 }
 //+------------------------------------------------------------------+
 //| Expert tick function                                             |
@@ -154,9 +166,10 @@ void OnChartEvent(const int32_t id, const long &lparam, const double &dparam,
 
    if (id == CHARTEVENT_OBJECT_CLICK) {
       gui.setButtonState(0);
-      Print(gui.getButtonState());
+      // Print(gui.getButtonState());
       gui.setBGClr(clrCadetBlue);
       // Print(ObjectGetInteger(ChartID(),sparam,OBJPROP_STATE));
+      CSetup latestSetup;
       ChartRedraw();
    };
    //---
