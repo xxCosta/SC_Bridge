@@ -1,4 +1,4 @@
-//+------------------------------------------------------------------+
+//+-----------------------------------------------------------------+
 //|                                                    SC_Bridge.mq5 |
 //|                                  Copyright 2026, MetaQuotes Ltd. |
 //|                                             https://www.mql5.com |
@@ -64,47 +64,75 @@ class CSetup {
    };
 };
 
-class CGui {
- private:
-   string m_status;
-   string m_button_fetch; // clicking this will populate a setup
-   int m_chartId;
-   bool m_button_state;
-   color m_button_BGClr;
+class CShape {
+ protected:
+ public:
+   long m_chartId;
+   string m_name;
+   void CShape(void) { m_chartId = ChartID(); };
+   void CShape(string name) {};
+   void CShape(string name, int id) : m_name(name), m_chartId(ChartID()) {};
+   long test() { return m_chartId; }
+};
+
+class CBtn : CShape {
+   int m_sizeX;
+   int m_sizeY;
+   ENUM_BASE_CORNER m_corner;
+   int m_distanceX;
+   int m_distanceY;
+   string m_text;
+   int m_fontSize;
+   string m_font;
+   color m_colourBG;
 
  public:
-   void CGui::CGui() {
-      m_button_fetch = "fetch button";
-      m_status = "muoy bien";
-      m_chartId = 0;
-      m_button_state = 1;
-      m_button_BGClr = clrThistle;
-      ObjectCreate(m_chartId, m_button_fetch, OBJ_BUTTON, 0, 0, 0);
-      if (ObjectFind(m_chartId, m_button_fetch) == m_chartId) {
-         ObjectSetInteger(m_chartId, m_button_fetch, OBJPROP_XSIZE, 90);
-         ObjectSetInteger(m_chartId, m_button_fetch, OBJPROP_YSIZE, 30);
-         ObjectSetInteger(m_chartId, m_button_fetch, OBJPROP_CORNER,
-                          CORNER_LEFT_LOWER);
-         ObjectSetInteger(m_chartId, m_button_fetch, OBJPROP_YDISTANCE, 50);
-         ObjectSetString(m_chartId, m_button_fetch, OBJPROP_TEXT, "GET SETUP");
-         ObjectSetInteger(m_chartId, m_button_fetch, OBJPROP_FONTSIZE, 8);
-         ObjectSetString(m_chartId, m_button_fetch, OBJPROP_FONT,
-                         "Lucidia Console");
-         ObjectSetInteger(m_chartId, m_button_fetch, OBJPROP_BGCOLOR,
-                          m_button_BGClr);
-         ChartRedraw();
-      } else
-         Print("CANT FIND OBJECT", GetLastError());
-   }
-   void CGui::setButtonState(bool state) {
-      m_button_state = state;
-      ObjectSetInteger(ChartID(), m_button_fetch, OBJPROP_STATE, state);
-   }
-   bool CGui::getButtonState() { return (m_button_state); }
-   void CGui::setBGClr(color colour) {
-      m_button_BGClr = colour;
-      ObjectSetInteger(ChartID(), m_button_fetch, OBJPROP_BGCOLOR,
-                       m_button_BGClr);
+   bool m_state;
+   void CBtn() {
+
+   };
+
+   void CBtn(string name, ENUM_BASE_CORNER corner, int distX, int distY,
+             string text)
+       : CShape(name, ChartID()), m_distanceX(distX), m_distanceY(distY),
+         m_text(text), m_corner(corner) {
+      m_sizeX = 90;
+      m_sizeY = 30;
+      m_fontSize = 8;
+      m_font = "Lucidia Console";
+      m_colourBG = clrThistle;
+      m_state = 1;
+   };
+   void draw() {
+      ObjectCreate(m_chartId, m_name, OBJ_BUTTON, 0, 0, 0);
+      ObjectSetInteger(m_chartId, m_name, OBJPROP_XSIZE, m_sizeX);
+      ObjectSetInteger(m_chartId, m_name, OBJPROP_YSIZE, m_sizeY);
+      ObjectSetInteger(m_chartId, m_name, OBJPROP_CORNER, CORNER_LEFT_LOWER);
+      ObjectSetInteger(m_chartId, m_name, OBJPROP_YDISTANCE, m_distanceY);
+      ObjectSetInteger(m_chartId, m_name, OBJPROP_XDISTANCE, m_distanceX);
+      ObjectSetString(m_chartId, m_name, OBJPROP_TEXT, m_text);
+      ObjectSetInteger(m_chartId, m_name, OBJPROP_FONTSIZE, m_fontSize);
+      ObjectSetString(m_chartId, m_name, OBJPROP_FONT, m_font);
+      ObjectSetInteger(m_chartId, m_name, OBJPROP_BGCOLOR, m_colourBG);
+      ChartRedraw();
+   };
+   bool getButtonState() { return (m_state); };
+};
+// class CHline : CDrawing {
+//  public:
+// void Drawing() {};
+// };
+
+class CGui {
+ public:
+   void CGui() {
+      CBtn button1("CONNECT SC", CORNER_LEFT_LOWER, 10, 50, "CONNECT SC");
+      Print("CGUI up and running");
+      // Print("State", button1.getButtonState());
+      button1.draw();
+   };
+   void setBGClr(string name, color colour) {
+      ObjectSetInteger(ChartID(), name, OBJPROP_BGCOLOR, colour);
    }
 };
 
@@ -172,11 +200,12 @@ void OnChartEvent(const int32_t id, const long &lparam, const double &dparam,
                   const string &sparam) {
 
    if (id == CHARTEVENT_OBJECT_CLICK) {
-      gui.setButtonState(0);
-      // Print(gui.getButtonState());
-      gui.setBGClr(clrCadetBlue);
-      // Print(ObjectGetInteger(ChartID(),sparam,OBJPROP_STATE));
+      // gui.setButtonState(0);
+      //  Print(gui.getButtonState());
+      gui.setBGClr("but1", clrCadetBlue);
+      //  Print(ObjectGetInteger(ChartID(),sparam,OBJPROP_STATE));
       CSetup latestSetup;
+
       ChartRedraw();
    };
    //---
